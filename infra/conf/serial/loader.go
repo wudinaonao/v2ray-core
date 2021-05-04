@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/ghodss/yaml"
+
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common/errors"
 	"github.com/v2fly/v2ray-core/v4/infra/conf"
@@ -76,6 +78,34 @@ func LoadJSONConfig(reader io.Reader) (*core.Config, error) {
 	pbConfig, err := jsonConfig.Build()
 	if err != nil {
 		return nil, newError("failed to parse json config").Base(err)
+	}
+
+	return pbConfig, nil
+}
+
+// DecodeYAMLConfig reads from reader and decode the config into *conf.Config
+// syntax error could be detected.
+func DecodeYAMLConfig(reader io.Reader) (*conf.Config, error) {
+	yamlBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	jsonBytes, err := yaml.YAMLToJSON(yamlBytes)
+	if err != nil {
+		return nil, err
+	}
+	jsonReader := bytes.NewReader(jsonBytes)
+	return DecodeJSONConfig(jsonReader)
+}
+
+func LoadYAMLConfig(reader io.Reader) (*core.Config, error) {
+	jsonConfig, err := DecodeYAMLConfig(reader)
+	if err != nil {
+		return nil, err
+	}
+	pbConfig, err := jsonConfig.Build()
+	if err != nil {
+		return nil, newError("failed to parse yaml config").Base(err)
 	}
 
 	return pbConfig, nil

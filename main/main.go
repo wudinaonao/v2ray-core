@@ -26,7 +26,7 @@ var (
 	configDir   string
 	version     = flag.Bool("version", false, "Show current version of V2Ray.")
 	test        = flag.Bool("test", false, "Test config file only, without launching V2Ray server.")
-	format      = flag.String("format", "json", "Format of input file.")
+	format      = flag.String("format", "yaml", "Format of input file, support yaml and json.")
 
 	/* We have to do this here because Golang's Test will also need to parse flag, before
 	 * main func in this file is run.
@@ -34,7 +34,7 @@ var (
 	_ = func() error { // nolint: unparam
 		flag.Var(&configFiles, "config", "Config file for V2Ray. Multiple assign is accepted (only json). Latter ones overrides the former ones.")
 		flag.Var(&configFiles, "c", "Short alias of -config")
-		flag.StringVar(&configDir, "confdir", "", "A dir with multiple json config")
+		flag.StringVar(&configDir, "confdir", "", "A dir with multiple yaml of json config")
 
 		return nil
 	}()
@@ -62,6 +62,9 @@ func readConfDir(dirPath string) {
 		if strings.HasSuffix(f.Name(), ".json") {
 			configFiles.Set(path.Join(dirPath, f.Name()))
 		}
+		if strings.HasSuffix(f.Name(), ".yaml") {
+			configFiles.Set(path.Join(dirPath, f.Name()))
+		}
 	}
 }
 
@@ -79,10 +82,15 @@ func getConfigFilePath() cmdarg.Arg {
 	}
 
 	if workingDir, err := os.Getwd(); err == nil {
-		configFile := filepath.Join(workingDir, "config.json")
-		if fileExists(configFile) {
-			log.Println("Using default config: ", configFile)
-			return cmdarg.Arg{configFile}
+		configFileYaml := filepath.Join(workingDir, "config.yaml")
+		if fileExists(configFileYaml) {
+			log.Println("Using default config: ", configFileYaml)
+			return cmdarg.Arg{configFileYaml}
+		}
+		configFileJson := filepath.Join(workingDir, "config.json")
+		if fileExists(configFileJson) {
+			log.Println("Using default config: ", configFileJson)
+			return cmdarg.Arg{configFileJson}
 		}
 	}
 
@@ -99,8 +107,10 @@ func GetConfigFormat() string {
 	switch strings.ToLower(*format) {
 	case "pb", "protobuf":
 		return "protobuf"
-	default:
+	case "json":
 		return "json"
+	default:
+		return "yaml"
 	}
 }
 
